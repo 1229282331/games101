@@ -301,7 +301,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
         {
             if(insideTriangle(i+0.5, j+0.5, t.v))
             {
-                float k = msaa(i+0.5, j+0.5, t.v, 64);
+                float k = msaa(i+0.5, j+0.5, t.v, 4);
                 auto[alpha, beta, gamma] = computeBarycentric2D(i, j, t.v); /*获得重心坐标*/
                 float Z = 1.0 / (alpha / t.v[0].w() + beta / t.v[1].w() + gamma / t.v[2].w());  /*获得深度插值*/
                 /*1.插值深度值*/
