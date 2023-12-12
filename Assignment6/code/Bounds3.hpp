@@ -98,18 +98,21 @@ inline bool Bounds3::IntersectP(const Ray& ray, const Vector3f& invDir,
     // TODO test if ray bound intersects
     float tx_enter = (pMin.x-ray.origin.x) * invDir.x;
     float tx_exit = (pMax.x-ray.origin.x) * invDir.x;
-    if(tx_exit<0 || tx_enter>=tx_exit)
-        return false;
+    if(!dirIsNeg[0])
+        std::swap(tx_enter, tx_exit);
     float ty_enter = (pMin.y-ray.origin.y) * invDir.y;
     float ty_exit = (pMax.y-ray.origin.y) * invDir.y;
-    if(ty_exit<0 || ty_enter>=ty_exit)
-        return false;
+    if(!dirIsNeg[1]) 
+        std::swap(ty_enter, ty_exit);
     float tz_enter = (pMin.z-ray.origin.z) * invDir.z;
     float tz_exit = (pMax.z-ray.origin.z) * invDir.z;
-    if(tz_exit<0 || tz_enter<=tz_exit)
-        return false;
+    if(!dirIsNeg[2])
+        std::swap(tz_enter, tz_exit);
+
+    float t_enter = std::max(tx_enter, std::max(ty_enter, tz_enter));
+    float t_exit = std::min(tx_exit, std::min(ty_exit, tz_exit));
     
-    return true;
+    return t_enter<t_exit && t_exit>=0;
 }
 
 inline Bounds3 Union(const Bounds3& b1, const Bounds3& b2)  /*合并两个盒子（取并集）*/

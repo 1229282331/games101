@@ -105,25 +105,14 @@ Intersection BVHAccel::Intersect(const Ray& ray) const
 Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
 {
     // TODO Traverse the BVH to find intersection
-    if(node->left==nullptr && node->right==nullptr) /*终止条件*/
-    {
-
-        std::array<int, 3UL> dirIsNeg = {int(ray.direction.x>0), int(ray.direction.y>0), int(ray.direction.z>0)};
-        if(node->bounds.IntersectP(ray, ray.direction_inv, dirIsNeg))   /*与bounding-box有交点*/
-        {
-            // std::cout << "has inter with box" << std::endl;
-            return node->object->getIntersection(ray);
-        }
+    //first: find the big box intersection
+    std::array<int, 3UL> dirIsNeg = {int(ray.direction.x>=0), int(ray.direction.y>=0), int(ray.direction.z>=0)};
+    if(!node->bounds.IntersectP(ray, ray.direction_inv, dirIsNeg))   /*与big-bounding-box wu交点*/
         return Intersection();
-    }
+    if(node->left==nullptr && node->right==nullptr) /*终止条件*/
+        return node->object->getIntersection(ray);
+
     Intersection inter_left = getIntersection(node->left, ray);
     Intersection inter_right = getIntersection(node->right, ray);
-    if(inter_left.happened && inter_right.happened) /*左右子树都有交点，取最近*/
-        return (inter_left.distance<inter_right.distance)? inter_left : inter_right;
-    if(inter_left.happened)
-        return inter_left;
-    if(inter_right.happened)
-        return inter_right;
-
-    return Intersection();
+    return (inter_left.distance<inter_right.distance)? inter_left : inter_right;
 }
