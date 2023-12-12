@@ -7,6 +7,7 @@
 #include <eigen3/Eigen/Eigen>
 #include <optional>
 #include <algorithm>
+#include <stdio.h>
 #include "global.hpp"
 #include "Shader.hpp"
 #include "Triangle.hpp"
@@ -18,7 +19,7 @@ namespace rst
     enum class Buffers
     {
         Color = 1,
-        Depth = 2
+        Depth = 2,
     };
 
     inline Buffers operator|(Buffers a, Buffers b)
@@ -76,6 +77,8 @@ namespace rst
         void set_fragment_shader(std::function<Eigen::Vector3f(fragment_shader_payload)> frag_shader);
 
         void set_pixel(const Vector2i &point, const Eigen::Vector3f &color);
+        void set_edge(const Vector2i &point);
+        void save_history(const Vector2i &point, const Eigen::Vector3f &color, float depth, float t);
 
         void clear(Buffers buff);
 
@@ -87,7 +90,7 @@ namespace rst
     private:
         void draw_line(Eigen::Vector3f begin, Eigen::Vector3f end);
 
-        void rasterize_triangle(const Triangle& t, const std::array<Eigen::Vector3f, 3>& world_pos);
+        void rasterize_triangle(const Triangle& t, const std::array<Eigen::Vector3f, 3>& world_pos, float threshold=0.625);
 
         // VERTEX SHADER -> MVP -> Clipping -> /.W -> VIEWPORT -> DRAWLINE/DRAWTRI -> FRAGSHADER
 
@@ -109,6 +112,10 @@ namespace rst
         std::function<Eigen::Vector3f(vertex_shader_payload)> vertex_shader;
 
         std::vector<Eigen::Vector3f> frame_buf;
+        std::vector<std::vector<Eigen::Vector3f>> history_frame_buf;
+        std::vector<std::vector<float>> history_sample_buf;
+        std::vector<std::vector<float>> history_depth_buf;
+        std::vector<bool> is_edge;
         std::vector<float> depth_buf;
         int get_index(int x, int y);
 

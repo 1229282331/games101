@@ -186,7 +186,6 @@ void rst::rasterizer::draw(std::vector<Triangle *> &TriangleList) {
     Eigen::Matrix4f mvp = projection * view * model;
     for (const auto& t:TriangleList)
     {
-
         Triangle newtri = *t;
 
         std::array<Eigen::Vector4f, 3> mm {
@@ -281,14 +280,13 @@ float msaa(float x, float y, const Eigen::Vector4f *_v, int rate=4, float p=1.0)
 }
 
 //Screen space rasterization
-void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eigen::Vector3f, 3>& view_pos) 
+void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eigen::Vector3f, 3>& view_pos, float threshold) 
 {
     // TODO: From your HW3, get the triangle rasterization code.
     // TODO: Inside your rasterization loop:
     //    * v[i].w() is the vertex view space depth value z.
     //    * Z is interpolated view space depth for the current pixel
     //    * zp is depth between zNear and zFar, used for z-buffer
-
     float xs[3] = {t.v[0][0], t.v[1][0], t.v[2][0]};
     float ys[3] = {t.v[0][1], t.v[1][1], t.v[2][1]};
     float left = *std::min_element(xs, xs+3);
@@ -296,56 +294,60 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
     float bottom = *std::min_element(ys, ys+3);
     float top = *std::max_element(ys, ys+3);
     
-    for(int i=int(left); i<int(right); i++)
-        for(int j=int(bottom); j<int(top); j++)
+    for(int i=int(left); i<=int(right); i++)
+        for(int j=int(bottom); j<=int(top); j++)
         {
             if(insideTriangle(i+0.5, j+0.5, t.v))
             {
-                float k = msaa(i+0.5, j+0.5, t.v, 4);
+                /*msaa超采样*/
+                float k = msaa(i+0.5, j+0.5, t.v, 1);
                 auto[alpha, beta, gamma] = computeBarycentric2D(i, j, t.v); /*获得重心坐标*/
                 float Z = 1.0 / (alpha / t.v[0].w() + beta / t.v[1].w() + gamma / t.v[2].w());  /*获得深度插值*/
-                /*1.插值深度值*/
+                /*0.插值深度值*/
                 float zp = alpha * t.v[0].z() / t.v[0].w() + beta * t.v[1].z() / t.v[1].w() + gamma * t.v[2].z() / t.v[2].w();
                 zp *= Z;
+                /*1.矫正重心坐标*/
+                alpha *= (Z/t.v[0].w());
+                beta *= (Z/t.v[1].w());
+                gamma *= (Z/t.v[2].w());
                 /*2.插值颜色值*/
-                Eigen::Vector3f interpolated_color = alpha*t.color[0]/t.v[0].w() + beta*t.color[1]/t.v[1].w() + gamma * t.color[2]/t.v[2].w();
-                interpolated_color *= Z;
+                auto interpolated_color = interpolate(alpha, beta, gamma, t.color[0], t.color[1], t.color[2], 1);
                 /*3.插值法向量*/
-                Eigen::Vector3f interpolated_normal = alpha*t.normal[0]/t.v[0].w() + beta*t.normal[1]/t.v[1].w() + gamma * t.normal[2]/t.v[2].w();
-                interpolated_normal *= Z;
+                auto interpolated_normal = interpolate(alpha, beta, gamma, t.normal[0], t.normal[1], t.normal[2], 1);
                 /*4.插值纹理位置*/
-                Eigen::Vector2f interpolated_texcoords = alpha*t.tex_coords[0]/t.v[0].w() + beta*t.tex_coords[1]/t.v[1].w() + gamma * t.tex_coords[2]/t.v[2].w();
-                interpolated_texcoords *= Z;
+                auto interpolated_texcoords = interpolate(alpha, beta, gamma, t.tex_coords[0], t.tex_coords[1], t.tex_coords[2], 1);
                 /*5.插值底纹颜色*/
-                Eigen::Vector3f interpolated_shadingcoords = alpha*view_pos[0]/t.v[0].w() + beta*view_pos[1]/t.v[1].w() + gamma * view_pos[2]/t.v[2].w();
-                interpolated_normal *= Z;
+                auto interpolated_shadingcoords = interpolate(alpha, beta, gamma, view_pos[0], view_pos[1], view_pos[2], 1);
                 fragment_shader_payload payload( interpolated_color, interpolated_normal.normalized(), interpolated_texcoords, texture ? &*texture : nullptr);
                 payload.view_pos = interpolated_shadingcoords;
                 auto pixel_color = fragment_shader(payload);
+                
+                Eigen::Vector2i point = {i, j};
+                save_history(point, pixel_color, zp, k);
 
                 if(zp < depth_buf[get_index(i, j)])
                 {
-                    Eigen::Vector2i point = {i, j};
-                    set_pixel(point, pixel_color*k);
                     depth_buf[get_index(i, j)] = zp;
+                    if(k <= threshold)
+                        is_edge[get_index(i, j)] = true;
+                    else
+                    {
+                        is_edge[get_index(i, j)] = false;
+                        set_pixel(point, pixel_color*k);
+                    }
                 }
+            }   
+        } 
+    for(int i=int(left); i<=int(right); i++)
+        for(int j=int(bottom); j<=int(top); j++)
+        {
+            if(is_edge[get_index(i, j)])
+            {
+                Eigen::Vector2i point = {i, j};
+                set_edge(point);
             }
+
         }
-
-
-    // TODO: Interpolate the attributes:
-    // auto interpolated_color
-    // auto interpolated_normal
-    // auto interpolated_texcoords
-    // auto interpolated_shadingcoords
-
-    // Use: fragment_shader_payload payload( interpolated_color, interpolated_normal.normalized(), interpolated_texcoords, texture ? &*texture : nullptr);
-    // Use: payload.view_pos = interpolated_shadingcoords;
-    // Use: Instead of passing the triangle's color directly to the frame buffer, pass the color to the shaders first to get the final color;
-    // Use: auto pixel_color = fragment_shader(payload);
-
-
- 
 }
 
 void rst::rasterizer::set_model(const Eigen::Matrix4f& m)
@@ -379,7 +381,11 @@ rst::rasterizer::rasterizer(int w, int h) : width(w), height(h)
 {
     frame_buf.resize(w * h);
     depth_buf.resize(w * h);
-
+    history_frame_buf.resize(w * h);
+    is_edge.resize(w * h);
+    history_sample_buf.resize(w * h);
+    history_depth_buf.resize(w * h);
+    std::fill(is_edge.begin(), is_edge.end(), false);
     texture = std::nullopt;
 }
 
@@ -391,8 +397,47 @@ int rst::rasterizer::get_index(int x, int y)
 void rst::rasterizer::set_pixel(const Vector2i &point, const Eigen::Vector3f &color)
 {
     //old index: auto ind = point.y() + point.x() * width;
+    if (point.x() <= 0 || point.x() >= width ||
+        point.y() <= 0 || point.y() >= height) return;
     int ind = (height-point.y())*width + point.x();
     frame_buf[ind] = color;
+}
+
+void rst::rasterizer::set_edge(const Vector2i &point)
+{
+    int ind = (height-point.y())*width + point.x();
+    auto color_vec = history_frame_buf[ind];
+    auto sample_vec = history_sample_buf[ind];
+    auto depth_vec = history_depth_buf[ind];
+    int len = sample_vec.size();
+    Eigen::Vector3f res_color = {0, 0, 0};
+
+    float mean_depth = sum<float>(depth_vec.begin(), depth_vec.end())/depth_vec.size();
+    for(int i=0; i<len;i++)
+    {
+        if(color_vec[i].norm()==0 && depth_buf[i]>=mean_depth)
+            sample_vec[i] = 0;
+    }
+    float sample_sum = sum<float>(sample_vec.begin(), sample_vec.end());
+    for(int i=0; i<len; i++)
+    {
+        sample_vec[i] /= sample_sum; 
+        res_color += (color_vec[i] * sample_vec[i]);
+        // printf("c%d[%.3f,%.3f,%.3f, %.3f, %.3f] ", i, color_vec[i].x(), color_vec[i].y(), color_vec[i].z(), depth_vec[i], sample_vec[i]);
+    }
+    // printf("result color:[%.3f,%.3f,%.3f]\n", res_color.x(), res_color.y(), res_color.z());
+
+
+    set_pixel(point, res_color);
+}
+
+void rst::rasterizer::save_history(const Vector2i &point, const Eigen::Vector3f &color, float depth, float k)
+{
+    int ind = (height-point.y())*width + point.x();
+    k = (k==0.f)?0.1:k;
+    history_frame_buf[ind].push_back(color);
+    history_depth_buf[ind].push_back(depth);
+    history_sample_buf[ind].push_back(k);
 }
 
 void rst::rasterizer::set_vertex_shader(std::function<Eigen::Vector3f(vertex_shader_payload)> vert_shader)
