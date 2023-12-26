@@ -72,7 +72,8 @@ private:
     }
 
     Vector3f toWorld(const Vector3f &a, const Vector3f &N){
-        Vector3f B, C;
+        /* a为单位球坐标系下的光线向量（比例值） */
+        Vector3f B, C;  /*B,C为将N作为z建立的坐标系的任意选取的x,y轴*/
         if (std::fabs(N.x) > std::fabs(N.y)){
             float invLen = 1.0f / std::sqrt(N.x * N.x + N.z * N.z);
             C = Vector3f(N.z * invLen, 0.0f, -N.x *invLen);
@@ -82,7 +83,7 @@ private:
             C = Vector3f(0.0f, N.z * invLen, -N.y *invLen);
         }
         B = crossProduct(C, N);
-        return a.x * B + a.y * C + a.z * N;
+        return a.x * B + a.y * C + a.z * N; /*将采样的单位光线向量比例值转为全局坐标系下*/
     }
 
 public:
@@ -134,10 +135,11 @@ Vector3f Material::sample(const Vector3f &wi, const Vector3f &N){
         case DIFFUSE:
         {
             // uniform sample on the hemisphere
+            /*这里更加科学的做法是局部坐标与全局坐标相互转换，但效率会偏低*/
             float x_1 = get_random_float(), x_2 = get_random_float();
             float z = std::fabs(1.0f - 2.0f * x_1);
             float r = std::sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
-            Vector3f localRay(r*std::cos(phi), r*std::sin(phi), z);
+            Vector3f localRay(r*std::cos(phi), r*std::sin(phi), z); /*仅是设置一个单位球坐标系下的局部光线向量（视为x,y,z分量比例）*/
             return toWorld(localRay, N);
             
             break;
