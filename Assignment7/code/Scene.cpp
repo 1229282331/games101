@@ -111,7 +111,13 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
         Vector3f wi = m->sample(wo, N).normalized(); /*采样一个渲染点p的反射方向*/
         Intersection q_inter = this->intersect(Ray(p, wi)); /*p->q*/
         if(q_inter.happened && !q_inter.m->hasEmission())
-            L_indir = castRay(Ray(p, wi), depth+1) * m->eval(wo, wi, N) * dotProduct(wi, N) / m->pdf(wo, wi, N) / RussianRoulette;
+        {
+            float pdf = m->pdf(wo, wi, N);
+            if(pdf<EPSILON)
+                L_indir = 0.0;
+            else
+                L_indir = castRay(Ray(p, wi), depth+1) * m->eval(wo, wi, N) * dotProduct(wi, N) / pdf / RussianRoulette;
+        }
     }
 
     return L_selfdir + L_dir + L_indir;
