@@ -50,8 +50,8 @@ void Renderer::Render(const Scene& scene)
     int m = 0;
 
     // change the spp value to change sample ammount
-    int spp = 3000;
-    const int thread_num = 16;
+    int spp = 128;
+    const int thread_num = 4;
     std::vector<std::thread> th;
     int thread_height = scene.height / thread_num;
     std::cout << "SPP: " << spp << "\n";

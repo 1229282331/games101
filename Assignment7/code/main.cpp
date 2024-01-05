@@ -24,9 +24,11 @@ int main(int argc, char** argv)
     white->Kd = Vector3f(0.725f, 0.71f, 0.68f);
     Material* light = new Material(DIFFUSE, (8.0f * Vector3f(0.747f+0.058f, 0.747f+0.258f, 0.747f) + 15.6f * Vector3f(0.740f+0.287f,0.740f+0.160f,0.740f) + 18.4f *Vector3f(0.737f+0.642f,0.737f+0.159f,0.737f)));
     light->Kd = Vector3f(0.65f);
+    Material* glossy_white = new Material(MICROFACET, Vector3f(0.0f));
+    glossy_white->Kd = Vector3f(0.725f, 0.71f, 0.68f);
 
     MeshTriangle floor("../models/cornellbox/floor.obj", white);
-    MeshTriangle shortbox("../models/cornellbox/shortbox.obj", white);
+    MeshTriangle shortbox("../models/cornellbox/shortbox.obj", glossy_white);
     MeshTriangle tallbox("../models/cornellbox/tallbox.obj", white);
     MeshTriangle left("../models/cornellbox/left.obj", red);
     MeshTriangle right("../models/cornellbox/right.obj", green);

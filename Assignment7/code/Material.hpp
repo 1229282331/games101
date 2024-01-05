@@ -7,7 +7,7 @@
 
 #include "Vector.hpp"
 
-enum MaterialType { DIFFUSE};
+enum MaterialType { DIFFUSE, MICROFACET};
 
 class Material{
 private:
@@ -144,12 +144,33 @@ Vector3f Material::sample(const Vector3f &wi, const Vector3f &N){
             
             break;
         }
+        case MICROFACET:
+        {
+            // uniform sample on the hemisphere
+            /*这里更加科学的做法是局部坐标与全局坐标相互转换，但效率会偏低*/
+            float x_1 = get_random_float(), x_2 = get_random_float();
+            float z = std::fabs(1.0f - 2.0f * x_1);
+            float r = std::sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
+            Vector3f localRay(r*std::cos(phi), r*std::sin(phi), z); /*仅是设置一个单位球坐标系下的局部光线向量（视为x,y,z分量比例）*/
+            return toWorld(localRay, N);
+            
+            break;
+        }
     }
 }
 
 float Material::pdf(const Vector3f &wi, const Vector3f &wo, const Vector3f &N){
     switch(m_type){
         case DIFFUSE:
+        {
+            // uniform sample probability 1 / (2 * PI)
+            if (dotProduct(wo, N) > 0.0f)
+                return 0.5f / M_PI;
+            else
+                return 0.0f;
+            break;
+        }
+        case MICROFACET:
         {
             // uniform sample probability 1 / (2 * PI)
             if (dotProduct(wo, N) > 0.0f)
@@ -173,6 +194,46 @@ Vector3f Material::eval(const Vector3f &wi, const Vector3f &wo, const Vector3f &
             }
             else
                 return Vector3f(0.0f);
+            break;
+        }
+        case MICROFACET:
+        {
+            float cosalpha = dotProduct(N, wo);
+            if(cosalpha<=0.0f)
+                return Vector3f(0.0f);
+
+            float roughness = 0.1;
+
+            float Fr;   
+            fresnel(wi, N, ior, Fr);
+
+            auto G_func = [](const Vector3f& wi, const Vector3f& wo, const Vector3f& n, const float& roughness=1.0)
+            {
+                double theta_i = acos(dotProduct(wi, n));
+                double theta_o = acos(dotProduct(wo, n));
+                double A_i = (-1 + sqrt(1+roughness*roughness*pow(tan(theta_i), 2))) / 2;
+                double A_o = (-1 + sqrt(1+roughness*roughness*pow(tan(theta_o), 2))) / 2;
+                float divisor = 1.0 + A_i + A_o;
+
+                return 1.0 / divisor;
+            };
+            float G = G_func(wi, wo, N, roughness);
+
+            auto D_func = [](const Vector3f& h, const Vector3f& n, const float& roughness=1.0)
+            {
+                double theta = acos(dotProduct(h, n));
+                float divisor = M_PI * pow(roughness*roughness*pow(cos(theta), 2)+pow(sin(theta), 2), 2);
+
+                return roughness*roughness / divisor;
+            };
+            Vector3f h = (wi + wo).normalized();
+            float D = D_func(h, N, roughness);
+
+            Vector3f diffuse = (1-Fr)*Kd / M_PI;
+            Vector3f specular = Vector3f(Fr*G*D / (4*dotProduct(N, wi)*dotProduct(N, wo)));
+
+            return diffuse + specular;
+
             break;
         }
     }
