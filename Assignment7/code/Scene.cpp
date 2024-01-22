@@ -74,51 +74,80 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
     /*0.自发光*/
     Vector3f L_selfdir = 0.0;  
     if(ray_inter.obj->hasEmit() && depth==0)
-        L_selfdir = ray_inter.m->getEmission();
-
-    /*1.直接光照*/
-    /*从所有面光源（包括自发光物体）采样点光源（一根光线）*/
-    Vector3f L_dir = 0.0;  
-    Intersection inter_light;
-    float pdf_light;
-    sampleLight(inter_light, pdf_light);
-    Vector3f ws = (inter_light.coords - p).normalized();
-    float distance = (inter_light.coords-p).norm();
-    p = (dotProduct(ws, N)<0) ? p-N*EPSILON : p+N*EPSILON;
-
-    // Intersection light2scene = this->intersect(Ray(inter_light.coords, -ws));   /*从光源发出射线判断相交*/
-    // if(light2scene.happened && light2scene.distance>distance-0.01) /*判断p点与采样点光源之间没有物体遮挡*/
-    // {
-    //     Vector3f NN = inter_light.normal.normalized();
-        
-    //     Vector3f eval = m->eval(wo, ws, N);
-    //     L_dir = inter_light.emit * eval * dotProduct(ws, N) * dotProduct(-ws, NN) / pow(distance, 2) / pdf_light;
-    // }
-    Intersection p2scene = this->intersect(Ray(p, ws));   /*从p向光源发出射线判断相交*/
-    if(p2scene.happened && p2scene.m->hasEmission()) /*判断p点与采样点光源之间没有物体遮挡*/
     {
-        Vector3f NN = inter_light.normal.normalized();
-        
-        Vector3f eval = m->eval(wo, ws, N);
-        L_dir = inter_light.emit * eval * dotProduct(ws, N) * dotProduct(-ws, NN) / pow(distance, 2) / pdf_light;
+        L_selfdir = ray_inter.m->getEmission();
     }
 
-    /*2.间接光照*/
+
+    
+    Vector3f L_dir = 0.0;
     Vector3f L_indir = 0.0;
-    float p_rr = get_random_float();
-    if(p_rr < RussianRoulette)
+    switch (m->getType())
     {
-        Vector3f wi = m->sample(wo, N).normalized(); /*采样一个渲染点p的反射方向*/
-        Intersection q_inter = this->intersect(Ray(p, wi)); /*p->q*/
-        if(q_inter.happened && !q_inter.m->hasEmission())
+        case MIRROR:
         {
-            float pdf = m->pdf(wo, wi, N);
-            if(pdf<EPSILON)
-                L_indir = 0.0;
-            else
-                L_indir = castRay(Ray(p, wi), depth+1) * m->eval(wo, wi, N) * dotProduct(wi, N) / pdf / RussianRoulette;
+            float p_rr = get_random_float();
+            if(p_rr < RussianRoulette)
+            {
+                Vector3f wi = m->sample(wo, N).normalized(); /*采样一个渲染点p的反射方向*/
+                Intersection q_inter = this->intersect(Ray(p, wi)); /*p->q*/
+
+                if(q_inter.happened)
+                {
+                    float pdf = m->pdf(wo, wi, N);
+                    if(pdf<EPSILON)
+                        L_indir = 0.0;
+                    else
+                        L_indir = castRay(Ray(p, wi), 0) * m->brdf(wo, wi, N) * dotProduct(wi, N) / pdf / RussianRoulette;
+                }
+            }
+
+            break;
+        }
+        default:
+        {
+            /*1.直接光照*/
+            /*从所有面光源（包括自发光物体）采样点光源（一根光线）*/
+            Intersection inter_light;
+            float pdf_light;
+            sampleLight(inter_light, pdf_light);
+            Vector3f ws = (inter_light.coords - p).normalized();
+            float distance = (inter_light.coords-p).norm();
+            p = (dotProduct(ws, N)<0) ? p-N*1e-6 : p+N*1e-6;
+
+            Intersection p2scene = this->intersect(Ray(p, ws));   /*从p向光源发出射线判断相交*/
+            if(p2scene.happened && p2scene.m->hasEmission()) /*判断p点与采样点光源之间没有物体遮挡*/
+            {
+                Vector3f NN = inter_light.normal.normalized();
+                
+                Vector3f eval = m->brdf(wo, ws, N);
+                L_dir = inter_light.emit * eval * dotProduct(ws, N) * dotProduct(-ws, NN) / pow(distance, 2) / pdf_light;
+            }
+            /*2.间接光照*/
+            float p_rr = get_random_float();
+            if(p_rr < RussianRoulette)
+            {
+                Vector3f wi = m->sample(wo, N).normalized(); /*采样一个渲染点p的反射方向*/
+                Intersection q_inter = this->intersect(Ray(p, wi)); /*p->q*/
+
+                if(q_inter.happened && !q_inter.m->hasEmission())
+                {
+                    float pdf = m->pdf(wo, wi, N);
+                    if(pdf<EPSILON)
+                        L_indir = 0.0;
+                    else
+                        L_indir = castRay(Ray(p, wi), depth+1) * m->brdf(wo, wi, N) * dotProduct(wi, N) / pdf / RussianRoulette;
+                }
+            }
+
+            break;
         }
     }
 
-    return L_selfdir + L_dir + L_indir;
+    Vector3f hitColor = L_selfdir + L_dir + L_indir;
+    hitColor.x = (clamp(0, 1, hitColor.x));
+    hitColor.y = (clamp(0, 1, hitColor.y));
+    hitColor.z = (clamp(0, 1, hitColor.z));
+
+    return hitColor;
 }

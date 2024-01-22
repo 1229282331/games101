@@ -26,16 +26,24 @@ int main(int argc, char** argv)
     light->Kd = Vector3f(0.65f);
     Material* glossy_white = new Material(MICROFACET, Vector3f(0.0f));
     glossy_white->Kd = Vector3f(0.725f, 0.71f, 0.68f);
+    glossy_white->ior = 10.0;
+    Material* mirror = new Material(MIRROR, Vector3f(0.0f));
+    mirror->Kd = Vector3f(0.0f);
+    mirror->ior = 17.0;
 
     MeshTriangle floor("../models/cornellbox/floor.obj", white);
-    MeshTriangle shortbox("../models/cornellbox/shortbox.obj", glossy_white);
-    MeshTriangle tallbox("../models/cornellbox/tallbox.obj", white);
+    MeshTriangle shortbox("../models/cornellbox/shortbox.obj", mirror);
+    MeshTriangle tallbox("../models/cornellbox/tallbox.obj", mirror);
     MeshTriangle left("../models/cornellbox/left.obj", red);
     MeshTriangle right("../models/cornellbox/right.obj", green);
     MeshTriangle light_("../models/cornellbox/light.obj", light);
+    Sphere sphere(Vector3f(150, 100, 200), 100, glossy_white);
+    MeshTriangle bunny("../models/bunny/bunny.obj", glossy_white, Vector3f(150, -20, 140), Vector3f(1500,1500,1500), Vector3f(-1,0,0), Vector3f(0,1,0), Vector3f(0,0,-1));
 
     scene.Add(&floor);
-    scene.Add(&shortbox);
+    // scene.Add(&shortbox);
+    scene.Add(&sphere);
+    // scene.Add(&bunny);
     scene.Add(&tallbox);
     scene.Add(&left);
     scene.Add(&right);

@@ -7,7 +7,7 @@
 
 #include "Vector.hpp"
 
-enum MaterialType { DIFFUSE, MICROFACET};
+enum MaterialType {DIFFUSE, MICROFACET, MIRROR};
 
 class Material{
 private:
@@ -107,8 +107,7 @@ public:
     // given a ray, calculate the PdF of this ray
     inline float pdf(const Vector3f &wi, const Vector3f &wo, const Vector3f &N);
     // given a ray, calculate the contribution of this ray
-    inline Vector3f eval(const Vector3f &wi, const Vector3f &wo, const Vector3f &N);
-
+    inline Vector3f brdf(const Vector3f &wi, const Vector3f &wo, const Vector3f &N);
 };
 
 Material::Material(MaterialType t, Vector3f e){
@@ -156,6 +155,10 @@ Vector3f Material::sample(const Vector3f &wi, const Vector3f &N){
             
             break;
         }
+        case MIRROR:
+        {
+            return reflect(-wi, N);
+        }
     }
 }
 
@@ -179,10 +182,17 @@ float Material::pdf(const Vector3f &wi, const Vector3f &wo, const Vector3f &N){
                 return 0.0f;
             break;
         }
+        case MIRROR:
+        {
+            if (dotProduct(wo, N) > 0.0f)
+                return 1.0f;
+            else
+                return 0.0f;
+        }
     }
 }
 
-Vector3f Material::eval(const Vector3f &wi, const Vector3f &wo, const Vector3f &N){
+Vector3f Material::brdf(const Vector3f &wi, const Vector3f &wo, const Vector3f &N){
     switch(m_type){
         case DIFFUSE:
         {
@@ -202,41 +212,67 @@ Vector3f Material::eval(const Vector3f &wi, const Vector3f &wo, const Vector3f &
             if(cosalpha<=0.0f)
                 return Vector3f(0.0f);
 
-            float roughness = 0.1;
+            float roughness = 0.4;
 
             float Fr;   
             fresnel(wi, N, ior, Fr);
 
-            auto G_func = [](const Vector3f& wi, const Vector3f& wo, const Vector3f& n, const float& roughness=1.0)
+            auto G_func = [&](const Vector3f& wi, const Vector3f& wo, const Vector3f& n, const float& roughness=1.0)
             {
                 double theta_i = acos(dotProduct(wi, n));
                 double theta_o = acos(dotProduct(wo, n));
                 double A_i = (-1 + sqrt(1+roughness*roughness*pow(tan(theta_i), 2))) / 2;
                 double A_o = (-1 + sqrt(1+roughness*roughness*pow(tan(theta_o), 2))) / 2;
                 float divisor = 1.0 + A_i + A_o;
+                float res = 1.0f / divisor;
+                if(divisor<EPSILON)
+                    return 1.0f;
 
-                return 1.0 / divisor;
+                return res;
             };
             float G = G_func(wi, wo, N, roughness);
 
-            auto D_func = [](const Vector3f& h, const Vector3f& n, const float& roughness=1.0)
+            auto D_func = [&](const Vector3f& h, const Vector3f& n, const float& roughness=1.0)
             {
                 double theta = acos(dotProduct(h, n));
                 float divisor = M_PI * pow(roughness*roughness*pow(cos(theta), 2)+pow(sin(theta), 2), 2);
+                float res = roughness*roughness / divisor;
 
-                return roughness*roughness / divisor;
+                if(divisor<EPSILON)
+                    return 1.0f;
+                return res;
             };
             Vector3f h = (wi + wo).normalized();
             float D = D_func(h, N, roughness);
+            Vector3f specular;
+            float divisor = (4*dotProduct(N, wi)*dotProduct(N, wo));
+            if(divisor<EPSILON)
+                specular = Vector3f(1.0f);
+            else
+                specular = Fr*G*D / divisor;
 
             Vector3f diffuse = (1-Fr)*Kd / M_PI;
-            Vector3f specular = Vector3f(Fr*G*D / (4*dotProduct(N, wi)*dotProduct(N, wo)));
 
             return diffuse + specular;
 
             break;
         }
+        case MIRROR:
+        {
+            float cosalpha = dotProduct(N, wo);
+            float kr;
+            if (cosalpha > 0.0f) {
+                fresnel(wi, N, ior, kr);
+                Vector3f mirror = 1 / cosalpha;
+                return kr * mirror;        
+            }
+            else
+                return Vector3f(0.0f);
+            break;
+        }
     }
 }
+
+
 
 #endif //RAYTRACING_MATERIAL_H

@@ -84,5 +84,6 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "/home/lixiaoyu/games101/assignment8/CGL/deps/glfw/tests"
 }
