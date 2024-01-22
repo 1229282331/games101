@@ -13,5 +13,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -I/home/lixiaoyu/games101/Assignment8/CGL/include -I/home/lixiaoyu/games101/Assignment8/CGL/deps/glew/include -I/usr/include/freetype2 -I/home/lixiaoyu/games101/Assignment8/CGL/src
 
-CXX_FLAGS =  -std=gnu++11 -m64 -O3 -fopenmp -std=gnu++0x -m64 -lXi -lXxf86vm -lXinerama -lXcursor -lXfixes -lXrandr -lXext -lXrender -lX11 -lpthread -lxcb -lXau -O3 -fopenmp
+CXX_FLAGS =   -O3 -fopenmp  -O3 -fopenmp -lXi -lXxf86vm -lXinerama -lXcursor -lXfixes -lXrandr -lXext -lXrender -lX11 -lpthread -lxcb -lXau -O3 -fopenmp
 

@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -I/home/lixiaoyu/games101/Assignment8/CGL/include -I/usr/include/freetype2
 
-CXX_FLAGS =  -std=gnu++11 -m64 -O3 -fopenmp
+CXX_FLAGS =   -O3 -fopenmp
 

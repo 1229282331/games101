@@ -127,18 +127,18 @@ ropesim: src/CMakeFiles/ropesim.dir/build.make
 ropesim: CGL/src/libCGL.a
 ropesim: CGL/deps/glew/libglew.a
 ropesim: CGL/deps/glfw/src/libglfw3.a
-ropesim: /usr/lib/x86_64-linux-gnu/libX11.so
-ropesim: /usr/lib/x86_64-linux-gnu/libXrandr.so
-ropesim: /usr/lib/x86_64-linux-gnu/libXinerama.so
-ropesim: /usr/lib/x86_64-linux-gnu/libXi.so
-ropesim: /usr/lib/x86_64-linux-gnu/libXxf86vm.so
-ropesim: /usr/lib/x86_64-linux-gnu/librt.a
-ropesim: /usr/lib/x86_64-linux-gnu/libm.so
-ropesim: /usr/lib/x86_64-linux-gnu/libXcursor.so
-ropesim: /usr/lib/x86_64-linux-gnu/libGL.so
-ropesim: /usr/lib/x86_64-linux-gnu/libGL.so
-ropesim: /usr/lib/x86_64-linux-gnu/libGLU.so
-ropesim: /usr/lib/x86_64-linux-gnu/libfreetype.so
+ropesim: /usr/lib/aarch64-linux-gnu/libX11.so
+ropesim: /usr/lib/aarch64-linux-gnu/libXrandr.so
+ropesim: /usr/lib/aarch64-linux-gnu/libXinerama.so
+ropesim: /usr/lib/aarch64-linux-gnu/libXi.so
+ropesim: /usr/lib/aarch64-linux-gnu/libXxf86vm.so
+ropesim: /usr/lib/aarch64-linux-gnu/librt.a
+ropesim: /usr/lib/aarch64-linux-gnu/libm.so
+ropesim: /usr/lib/aarch64-linux-gnu/libXcursor.so
+ropesim: /usr/lib/aarch64-linux-gnu/libGL.so
+ropesim: /usr/lib/aarch64-linux-gnu/libGL.so
+ropesim: /usr/lib/aarch64-linux-gnu/libGLU.so
+ropesim: /usr/lib/aarch64-linux-gnu/libfreetype.so
 ropesim: src/CMakeFiles/ropesim.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/lixiaoyu/games101/Assignment8/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX executable ../ropesim"
 	cd /home/lixiaoyu/games101/Assignment8/build/src && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/ropesim.dir/link.txt --verbose=$(VERBOSE)

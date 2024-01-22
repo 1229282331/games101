@@ -282,9 +282,9 @@ CGL/src/CMakeFiles/CGL.dir/clean:
 # Target rules for target src/CMakeFiles/ropesim.dir
 
 # All Build rule for target.
-src/CMakeFiles/ropesim.dir/all: CGL/src/CMakeFiles/CGL.dir/all
 src/CMakeFiles/ropesim.dir/all: CGL/deps/glew/CMakeFiles/glew.dir/all
 src/CMakeFiles/ropesim.dir/all: CGL/deps/glfw/src/CMakeFiles/glfw.dir/all
+src/CMakeFiles/ropesim.dir/all: CGL/src/CMakeFiles/CGL.dir/all
 	$(MAKE) $(MAKESILENT) -f src/CMakeFiles/ropesim.dir/build.make src/CMakeFiles/ropesim.dir/depend
 	$(MAKE) $(MAKESILENT) -f src/CMakeFiles/ropesim.dir/build.make src/CMakeFiles/ropesim.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/lixiaoyu/games101/Assignment8/build/CMakeFiles --progress-num=33,34,35,36 "Built target ropesim"
